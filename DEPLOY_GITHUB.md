@@ -99,7 +99,7 @@ Točnu adresu vidiš i u zelenom poslu pod korakom **Objavi stranicu** te pod
 
 ## 7. Što se dalje događa automatski
 
-Datoteka `.github/workflows/deploy-pages.yml` svaki dan u 09:12 prema zoni
+Datoteka `.github/workflows/deploy-pages.yml` svaki dan u 09:00 prema zoni
 `Europe/Zagreb` radi sljedeće:
 
 1. preuzme trenutni repository;
