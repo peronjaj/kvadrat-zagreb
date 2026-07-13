@@ -1,6 +1,7 @@
 import { getListings,getStats } from "./data-client.js";
 
 const state = { minDeal:-1000, saved:new Set(JSON.parse(localStorage.getItem("kvadrat-saved") || "[]")), showingSaved:false, listings:[], language:localStorage.getItem("kvadrat-language")||"hr", sourceMeta:null };
+let listingsRequestId=0;
 const $ = selector => document.querySelector(selector);
 const money = value => new Intl.NumberFormat(state.language==="en"?"en-IE":"hr-HR", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(value);
 const relative = date => { const h = Math.round((Date.now() - new Date(date)) / 3600000); return h < 1 ? "upravo sada" : h < 24 ? `prije ${h} h` : `prije ${Math.round(h/24)} d`; };
@@ -17,6 +18,8 @@ Object.assign(copy.hr,{allZagreb:"Cijeli Zagreb",allSources:"Svi izvori",anyPric
 Object.assign(copy.en,{allZagreb:"All Zagreb",allSources:"All sources",anyPrice:"Any price",openSource:"Open listing on {source}",liveSources:"Sources"});
 Object.assign(copy.hr,{floorAccessCorrection:"Kat / pristup"});
 Object.assign(copy.en,{floorAccessCorrection:"Floor / access"});
+Object.assign(copy.hr,{resetFilters:"Poništi",filterResults:"rezultata",filterActive:"Aktivni filtri"});
+Object.assign(copy.en,{resetFilters:"Reset",filterResults:"results",filterActive:"Active filters"});
 const translatedLabel=label=>({"Top prilika":"topOpportunity","Dobar deal":"goodDeal","Ispod tržišta":"belowMarket","Tržišna cijena":"marketPrice","Iznad tržišta":"aboveMarket"}[label]?t({"Top prilika":"topOpportunity","Dobar deal":"goodDeal","Ispod tržišta":"belowMarket","Tržišna cijena":"marketPrice","Iznad tržišta":"aboveMarket"}[label]):label);
 const relativeText=date=>{const h=Math.round((Date.now()-new Date(date))/3600000);if(h<1)return t("justNow");const key=h<24?"hoursAgo":"daysAgo";return t(key).replace("{n}",h<24?h:Math.round(h/24));};
 const dealPalette=value=>{if(value<0){const strength=Math.min(1,Math.abs(value)/25);return{color:`hsl(6 ${65+25*strength}% ${52-10*strength}%)`,background:`hsla(6,82%,52%,${.07+.09*strength})`};}const strength=Math.min(1,value/20);return{color:`hsl(151 ${45+35*strength}% ${40-16*strength}%)`,background:`hsla(151,65%,38%,${.06+.12*strength})`};};
@@ -24,18 +27,46 @@ function applyTranslations(){document.documentElement.lang=state.language;docume
 function updateSourceNotice(){const data=state.sourceMeta;if(!data)return;const notice=$("#sourceNotice");const statuses=data.sourceStatus||[];const parts=statuses.map(status=>`${status.source}: ${status.ok?status.count+(status.snapshot?" (snimka)":""):state.language==="en"?"cached / unavailable":"cache / nedostupno"}`);const time=data.lastSync?new Date(data.lastSync).toLocaleTimeString(state.language==="en"?"en-IE":"hr-HR",{hour:"2-digit",minute:"2-digit"}):"—";notice.textContent=`${t("liveSources")}: ${parts.join(" · ")} · ${time}`;notice.classList.toggle("live",statuses.some(status=>status.ok)&&!data.usingDemo);}
 
 async function loadStats(){ const s = await getStats(); $("#statTotal").textContent=s.total; $("#statDeals").textContent=s.goodDeals; $("#statAverage").textContent=s.averageM2.toLocaleString("hr-HR"); $("#statNew").textContent=s.newToday; }
-async function loadListings(){
+function activeFilterLabels(){
+  const labels=[];
+  const query=$("#search").value.trim();
+  if(query)labels.push(`“${query}”`);
+  if($("#areaFilter").value!=="all")labels.push($("#areaFilter").selectedOptions[0].textContent);
+  if($("#sourceFilter").value!=="all")labels.push($("#sourceFilter").selectedOptions[0].textContent);
+  if($("#priceFilter").value)labels.push($("#priceFilter").selectedOptions[0].textContent);
+  if(state.minDeal>0)labels.push(state.minDeal>=8?t("goodDeals"):t("belowMarket"));
+  return labels;
+}
+function updateFilterFeedback(count){const labels=activeFilterLabels();$("#filterFeedback").textContent=labels.length?`${t("filterActive")}: ${labels.join(" · ")} — ${count} ${t("filterResults")}`:"";}
+async function loadListings({scroll=false}={}){
+  const requestId=++listingsRequestId;
+  const form=$("#filtersForm");
+  form.setAttribute("aria-busy","true");
+  $("#searchButton").disabled=true;
   const params = new URLSearchParams({ minDeal:state.minDeal, sort:$("#sort").value });
   if($("#areaFilter").value!=="all") params.set("area",$("#areaFilter").value);
   if($("#sourceFilter").value!=="all") params.set("source",$("#sourceFilter").value);
   if($("#priceFilter").value) params.set("maxPrice",$("#priceFilter").value);
   if($("#search").value.trim()) params.set("q",$("#search").value.trim());
-  const data=await getListings(params);
-  state.listings=data.items;
-  state.sourceMeta=data;
-  const notice=$("#sourceNotice");notice.hidden=false;
-  updateSourceNotice();
-  render();
+  try{
+    const data=await getListings(params);
+    if(requestId!==listingsRequestId)return;
+    state.listings=data.items;
+    state.sourceMeta=data;
+    const notice=$("#sourceNotice");notice.hidden=false;
+    updateSourceNotice();
+    render();
+    updateFilterFeedback(data.items.length);
+    if(scroll)$("#oglasi").scrollIntoView({behavior:"smooth",block:"start"});
+  }finally{
+    if(requestId===listingsRequestId){form.removeAttribute("aria-busy");$("#searchButton").disabled=false;}
+  }
+}
+function applyFilters(options={}){state.showingSaved=false;$("#savedButton").classList.remove("active");return loadListings(options);}
+function resetFilters(){
+  $("#search").value="";$("#areaFilter").value="all";$("#sourceFilter").value="all";$("#priceFilter").value="";$("#sort").value="newest";state.minDeal=-1000;
+  document.querySelectorAll("[data-deal]").forEach(button=>button.classList.toggle("active",button.dataset.deal==="-1000"));
+  applyFilters({scroll:true});
 }
 function render(){
   const items=state.showingSaved?state.listings.filter(x=>state.saved.has(x.id)):state.listings;
@@ -68,12 +99,13 @@ function toast(message){ const t=$("#toast");t.textContent=message;t.classList.a
 
 document.addEventListener("click",e=>{ if(e.target.closest("[data-external]")){e.stopPropagation();return}const save=e.target.closest("[data-save]");if(save){e.stopPropagation();toggleSaved(save.dataset.save);return}const card=e.target.closest(".card");if(card)showDetail(state.listings.find(x=>x.id===card.dataset.id)); });
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches(".card")) showDetail(state.listings.find(x=>x.id===e.target.dataset.id));});
-document.querySelectorAll("[data-deal]").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll("[data-deal]").forEach(x=>x.classList.remove("active"));btn.classList.add("active");state.minDeal=Number(btn.dataset.deal);loadListings();}));
-$("#searchButton").onclick=loadListings; $("#search").addEventListener("keydown",e=>e.key==="Enter"&&loadListings()); $("#sort").onchange=loadListings; $("#areaFilter").onchange=loadListings; $("#sourceFilter").onchange=loadListings; $("#priceFilter").onchange=loadListings;
+document.querySelectorAll("[data-deal]").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll("[data-deal]").forEach(x=>x.classList.remove("active"));btn.classList.add("active");state.minDeal=Number(btn.dataset.deal);applyFilters();}));
+$("#filtersForm").addEventListener("submit",event=>{event.preventDefault();applyFilters({scroll:true});});
+$("#resetFilters").onclick=resetFilters; $("#sort").onchange=()=>applyFilters(); $("#areaFilter").onchange=()=>applyFilters({scroll:true}); $("#sourceFilter").onchange=()=>applyFilters({scroll:true}); $("#priceFilter").onchange=()=>applyFilters({scroll:true});
 $("#savedButton").onclick=()=>{state.showingSaved=!state.showingSaved;$("#savedButton").classList.toggle("active",state.showingSaved);render();$("#oglasi").scrollIntoView();};
 $("#alertButton").onclick=()=>$("#alertDialog").showModal(); $("#saveAlert").onclick=()=>{$("#alertDialog").close();localStorage.setItem("kvadrat-alert",$("#alertName").value);toast("Alarm je spremljen");};
 document.querySelectorAll(".dialog-close").forEach(btn=>btn.onclick=()=>btn.closest("dialog").close());
-$("#languageToggle").onclick=()=>{state.language=state.language==="hr"?"en":"hr";localStorage.setItem("kvadrat-language",state.language);applyTranslations();updateSourceNotice();render();};
+$("#languageToggle").onclick=()=>{state.language=state.language==="hr"?"en":"hr";localStorage.setItem("kvadrat-language",state.language);applyTranslations();updateSourceNotice();render();updateFilterFeedback(state.listings.length);};
 
 async function init(){applyTranslations();const all=await getListings();[...new Set(all.items.map(x=>x.neighborhood))].sort().forEach(n=>$("#areaFilter").insertAdjacentHTML("beforeend",`<option>${n}</option>`));(all.sources||[]).forEach(source=>$("#sourceFilter").insertAdjacentHTML("beforeend",`<option>${source}</option>`)); await Promise.all([loadStats(),loadListings()]);}
 init().catch(()=>{$("#resultSummary").textContent="Aplikacija trenutačno nije dostupna.";});

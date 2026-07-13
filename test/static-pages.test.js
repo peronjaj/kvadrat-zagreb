@@ -16,4 +16,9 @@ test("GitHub Pages statički način podržava filtre i statistike",()=>{
   assert.equal(stats.total,2);
   assert.equal(stats.goodDeals,1);
   assert.equal(stats.averageM2,3600);
+
+  const combined=staticListingsPayload(data,new URLSearchParams({source:"Portal A",maxPrice:"160000",q:"savica",sort:"price"}));
+  assert.deepEqual(combined.items.map(item=>item.id),["a"]);
+  const empty=staticListingsPayload(data,new URLSearchParams({source:"Portal B",maxPrice:"200000"}));
+  assert.equal(empty.items.length,0);
 });

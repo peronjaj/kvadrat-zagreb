@@ -22,13 +22,15 @@
       <div class="eyebrow"><span></span><i data-i18n="heroEyebrow">Pametnija potraga za nekretninom</i></div>
       <h1 data-i18n-html="heroTitle">Pronađi stan koji vrijedi<br><em>više nego što košta.</em></h1>
       <p data-i18n="heroText">Pratimo nove oglase u Zagrebu i uspoređujemo ih s lokalnim tržištem. Najbolje prilike vidiš prve.</p>
-      <div class="searchbar">
+      <form class="searchbar" id="filtersForm">
         <label class="search-input"><span>⌕</span><input id="search" placeholder="Kvart, ulica ili ključna riječ" data-i18n-placeholder="searchPlaceholder" /></label>
         <select id="areaFilter" aria-label="Odaberi kvart"><option value="all" data-i18n="allZagreb">Cijeli Zagreb</option></select>
         <select id="sourceFilter" aria-label="Odaberi izvor"><option value="all" data-i18n="allSources">Svi izvori</option></select>
         <select id="priceFilter" aria-label="Najviša cijena"><option value="" data-i18n="anyPrice">Bilo koja cijena</option><option value="150000">≤ 150.000 €</option><option value="200000">≤ 200.000 €</option><option value="250000">≤ 250.000 €</option><option value="350000">≤ 350.000 €</option></select>
-        <button class="primary" id="searchButton" data-i18n="findDeals">Pronađi dealove</button>
-      </div>
+        <button class="primary" id="searchButton" type="submit" data-i18n="findDeals">Pronađi dealove</button>
+        <button class="filter-reset" id="resetFilters" type="button" data-i18n="resetFilters">Poništi</button>
+      </form>
+      <p class="filter-feedback" id="filterFeedback" aria-live="polite"></p>
       <div class="trust-row"><span data-i18n="trustLocal">✓ Lokalna procjena po kvartu</span><span data-i18n="trustNew">✓ Novi oglasi svaki dan</span><span data-i18n="trustClear">✓ Bez skrivenog rangiranja</span></div>
     </section>
 
