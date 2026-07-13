@@ -6,7 +6,7 @@ on:
     paths-ignore:
       - public/data.json
   schedule:
-    - cron: "0 9 * * *"
+    - cron: "0 9,17 * * *"
       timezone: "Europe/Zagreb"
   workflow_dispatch:
 

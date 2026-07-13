@@ -51,13 +51,16 @@ const server = http.createServer(async (req,res) => {
 });
 
 await syncListings({loadData,saveData});
-function scheduleDailySync(){
+function scheduleNextSync(){
   const now=new Date();
-  const next=new Date(now);
-  next.setHours(9,0,0,0);
-  if(next<=now)next.setDate(next.getDate()+1);
-  const timer=setTimeout(async()=>{try{await syncListings({loadData,saveData});}catch(error){console.error(error);}scheduleDailySync();},next-now);
+  const next=[9,17].map(hour=>{
+    const candidate=new Date(now);
+    candidate.setHours(hour,0,0,0);
+    if(candidate<=now)candidate.setDate(candidate.getDate()+1);
+    return candidate;
+  }).sort((a,b)=>a-b)[0];
+  const timer=setTimeout(async()=>{try{await syncListings({loadData,saveData});}catch(error){console.error(error);}scheduleNextSync();},next-now);
   timer.unref();
 }
-scheduleDailySync();
+scheduleNextSync();
 server.listen(port, () => console.log(`Kvadrat je dostupan na http://localhost:${port}`));

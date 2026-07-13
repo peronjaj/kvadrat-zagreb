@@ -5,7 +5,7 @@ mikrolokaciji i označava oglase koji su ispod procijenjene vrijednosti.
 
 Za potpuno besplatnu javnu objavu preporučen je GitHub Pages. Workflow u
 `.github/workflows/deploy-pages.yml` osvježava `public/data.json` svaki dan u
-09:12 po zoni Europe/Zagreb i zatim objavljuje mapu `public`. Precizne upute za
+09:00 i 17:00 po zoni Europe/Zagreb i zatim objavljuje mapu `public`. Precizne upute za
 upload su u `DEPLOY_GITHUB.md`. Netlify konfiguracija ostaje kao neobavezna
 rezervna mogućnost.
 
@@ -37,7 +37,7 @@ ograničava rezultate na Grad Zagreb i zadnja tri dana. Index Oglasi prvo
 pokušava dohvatiti javni Zagreb feed; ako portal odbije serverski poziv, koristi
 se vremenski ograničena provjerena javna snimka, jasno označena u statusu.
 
-Sinkronizacija se izvodi pri pokretanju i zatim svaki dan u 09:00 po lokalnom
+Sinkronizacija se izvodi pri pokretanju i zatim svaki dan u 09:00 i 17:00 po lokalnom
 zagrebačkom vremenu. Nakon CAPTCHA-e
 adapter radi pauzu od šest sati kako dodatnim zahtjevima ne bi produljio blokadu.
 Može se ručno pokrenuti zahtjevom `POST /api/sync`. Status izvora vraća se uz
