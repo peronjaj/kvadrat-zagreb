@@ -57,6 +57,7 @@ const text=key=>dynamicCopy[currentLanguage][key]||key;
 const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const safeUrl=value=>{try{const url=new URL(value);return /^https?:$/.test(url.protocol)?url.href:null;}catch{return null;}};
 const money=value=>new Intl.NumberFormat(currentLanguage==="en"?"en-IE":"hr-HR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(value);
+const compactMoney=value=>value>=1000000?`${(value/1000000).toLocaleString(currentLanguage==="en"?"en-IE":"hr-HR",{maximumFractionDigits:1})}M €`:`${Math.round(value/1000)}k €`;
 
 function hash(value){
   let result=2166136261;
@@ -73,8 +74,8 @@ export function listingCoordinates(item){
   return [Number((center[0]+Math.sin(angle)*radius).toFixed(6)),Number((center[1]+Math.cos(angle)*radius*1.45).toFixed(6))];
 }
 
-export function filterMapDeals(items,{area="all",source="all",maxPrice=Infinity,minDeal=.1}={}){
-  return items.filter(item=>item.discountPct>0&&(area==="all"||item.neighborhood===area)&&(source==="all"||item.source===source)&&item.price<=Number(maxPrice||Infinity)&&item.discountPct>=Number(minDeal||.1)).sort((a,b)=>b.discountPct-a.discountPct||a.price-b.price);
+export function filterMapDeals(items,{area="all",source="all",maxPrice=Infinity,minArea=0,maxArea=Infinity,minDeal=.1}={}){
+  return items.filter(item=>item.discountPct>0&&(area==="all"||item.neighborhood===area)&&(source==="all"||item.source===source)&&item.price<=Number(maxPrice||Infinity)&&Number(item.area??0)>=Number(minArea||0)&&Number(item.area??0)<=Number(maxArea||Infinity)&&item.discountPct>=Number(minDeal||.1)).sort((a,b)=>b.discountPct-a.discountPct||a.price-b.price);
 }
 
 function currentFilters(){
@@ -82,6 +83,8 @@ function currentFilters(){
     area:byId("mapAreaFilter")?.value||"all",
     source:byId("mapSourceFilter")?.value||"all",
     maxPrice:Number(byId("mapPriceFilter")?.value||Infinity),
+    minArea:Number(byId("mapMinAreaFilter")?.value||0),
+    maxArea:Number(byId("mapMaxAreaFilter")?.value||Infinity),
     minDeal:Number(byId("mapDealFilter")?.value||.1)
   };
 }
@@ -107,7 +110,11 @@ function renderDealList(items){
   }).join("");
   list.querySelectorAll("[data-map-focus]").forEach(button=>button.addEventListener("click",()=>{
     const marker=markerById.get(button.dataset.mapFocus);
-    if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),14,{animate:true});marker.openPopup();}
+    if(marker&&mapInstance){
+      mapInstance.setView(marker.getLatLng(),14,{animate:true});
+      if(typeof markerLayer?.zoomToShowLayer==="function")markerLayer.zoomToShowLayer(marker,()=>marker.openPopup());
+      else marker.openPopup();
+    }
   }));
 }
 
@@ -122,8 +129,10 @@ function renderMap({fit=true}={}){
   const bounds=[];
   for(const item of items){
     const coordinates=listingCoordinates(item);
-    const icon=globalThis.L.divIcon({className:"deal-price-icon",html:`<span class="deal-price-marker" style="--marker-color:${markerColor(item.discountPct)}"><b>${money(item.price)}</b><small>−${item.discountPct}%</small></span>`,iconSize:[1,1],iconAnchor:[0,0]});
-    const marker=globalThis.L.marker(coordinates,{icon,title:`${money(item.price)} · ${item.neighborhood}`}).bindPopup(popupHtml(item),{maxWidth:310});
+    const icon=globalThis.L.divIcon({className:"deal-price-icon",html:`<span class="deal-price-marker" style="--marker-color:${markerColor(item.discountPct)}"><b>${compactMoney(item.price)}</b></span>`,iconSize:[88,34],iconAnchor:[44,17],popupAnchor:[0,-17]});
+    const marker=globalThis.L.marker(coordinates,{icon,title:`${money(item.price)} · −${item.discountPct}% · ${item.neighborhood}`}).bindPopup(popupHtml(item),{maxWidth:310});
+    marker.on("popupopen",()=>marker.getElement()?.classList.add("is-selected"));
+    marker.on("popupclose",()=>marker.getElement()?.classList.remove("is-selected"));
     marker.addTo(markerLayer);markerById.set(item.id,marker);bounds.push(coordinates);
   }
   if(fit&&bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
@@ -147,13 +156,16 @@ export function initDealMap(items,{language="hr"}={}){
   addOptions(byId("mapAreaFilter"),[...new Set(allDeals.map(item=>item.neighborhood))].sort((a,b)=>a.localeCompare(b,"hr")));
   addOptions(byId("mapSourceFilter"),[...new Set(allDeals.map(item=>item.source))].sort((a,b)=>a.localeCompare(b,"hr")));
   ["mapAreaFilter","mapSourceFilter","mapPriceFilter","mapDealFilter"].forEach(id=>byId(id)?.addEventListener("change",()=>renderMap()));
+  ["mapMinAreaFilter","mapMaxAreaFilter"].forEach(id=>byId(id)?.addEventListener("input",()=>renderMap()));
   byId("resetMapFilters")?.addEventListener("click",()=>{
-    byId("mapAreaFilter").value="all";byId("mapSourceFilter").value="all";byId("mapPriceFilter").value="";byId("mapDealFilter").value="0.1";renderMap();
+    byId("mapAreaFilter").value="all";byId("mapSourceFilter").value="all";byId("mapPriceFilter").value="";byId("mapMinAreaFilter").value="";byId("mapMaxAreaFilter").value="";byId("mapDealFilter").value="0.1";renderMap();
   });
   if(globalThis.L){
     mapInstance=globalThis.L.map("dealMap",{scrollWheelZoom:false,zoomControl:true}).setView(ZAGREB_CENTER,11);
     globalThis.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(mapInstance);
-    markerLayer=globalThis.L.layerGroup().addTo(mapInstance);
+    markerLayer=typeof globalThis.L.markerClusterGroup==="function"
+      ?globalThis.L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:42,spiderfyOnMaxZoom:true,disableClusteringAtZoom:14,iconCreateFunction:cluster=>globalThis.L.divIcon({className:"deal-cluster-icon",html:`<span class="deal-cluster-marker"><b>${cluster.getChildCount()}</b><small>${currentLanguage==="en"?"deals":"dealova"}</small></span>`,iconSize:[48,48],iconAnchor:[24,24]})}).addTo(mapInstance)
+      :globalThis.L.layerGroup().addTo(mapInstance);
   }else{
     const container=byId("dealMap");if(container)container.innerHTML=`<div class="map-load-error">${text("mapUnavailable")}</div>`;
   }

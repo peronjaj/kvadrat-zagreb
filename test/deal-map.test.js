@@ -3,15 +3,17 @@ import assert from "node:assert/strict";
 import { filterMapDeals,listingCoordinates } from "../public/deal-map.js";
 
 const listings=[
-  {id:"a",source:"Njuškalo",neighborhood:"Trnje",price:150000,discountPct:12},
-  {id:"b",source:"Index Oglasi",neighborhood:"Maksimir",price:220000,discountPct:4},
-  {id:"c",source:"Njuškalo",neighborhood:"Trnje",price:130000,discountPct:-2}
+  {id:"a",source:"Njuškalo",neighborhood:"Trnje",price:150000,area:62,discountPct:12},
+  {id:"b",source:"Index Oglasi",neighborhood:"Maksimir",price:220000,area:91,discountPct:4},
+  {id:"c",source:"Njuškalo",neighborhood:"Trnje",price:130000,area:48,discountPct:-2}
 ];
 
 test("karta prikazuje samo oglase ispod procjene i primjenjuje svoje filtre",()=>{
   assert.deepEqual(filterMapDeals(listings).map(item=>item.id),["a","b"]);
   assert.deepEqual(filterMapDeals(listings,{area:"Trnje",source:"Njuškalo",maxPrice:160000,minDeal:8}).map(item=>item.id),["a"]);
   assert.equal(filterMapDeals(listings,{maxPrice:140000}).length,0);
+  assert.deepEqual(filterMapDeals(listings,{minArea:70,maxArea:100}).map(item=>item.id),["b"]);
+  assert.equal(filterMapDeals(listings,{minArea:95}).length,0);
 });
 
 test("oglas dobiva stabilnu približnu koordinatu unutar Zagreba",()=>{
