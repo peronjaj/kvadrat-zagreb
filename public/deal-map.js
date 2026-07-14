@@ -41,9 +41,11 @@ const LOCATION_CENTERS={
 };
 
 const dynamicCopy={
-  hr:{count:"oglasa ispod procjene na karti",empty:"Nema dealova za ove filtre.",open:"Otvori originalni oglas",estimated:"Približna lokacija kvarta",mapUnavailable:"Karta se nije mogla učitati. Dealovi su i dalje dostupni na popisu."},
-  en:{count:"below-estimate listings on the map",empty:"No deals match these map filters.",open:"Open original listing",estimated:"Approximate neighbourhood location",mapUnavailable:"The map could not be loaded. Deals are still available in the list."}
+  hr:{count:"oglasa ispod procjene na karti",empty:"Nema dealova za ove filtre.",open:"Otvori originalni oglas",estimated:"Približna lokacija kvarta",mapUnavailable:"Karta se nije mogla učitati. Dealovi su i dalje dostupni na popisu.",anySize:"Sve kvadrature",ranges:"raspona"},
+  en:{count:"below-estimate listings on the map",empty:"No deals match these map filters.",open:"Open original listing",estimated:"Approximate neighbourhood location",mapUnavailable:"The map could not be loaded. Deals are still available in the list.",anySize:"Any size",ranges:"ranges"}
 };
+
+const SIZE_RANGES={under40:area=>area<=40,"40to60":area=>area>40&&area<=60,"60to80":area=>area>60&&area<=80,"80to100":area=>area>80&&area<=100,over100:area=>area>100};
 
 let allDeals=[];
 let currentLanguage="hr";
@@ -51,13 +53,14 @@ let mapInstance=null;
 let markerLayer=null;
 let markerById=new Map();
 let initialized=false;
+let appliedSizeRanges=[];
 
 const byId=id=>globalThis.document?.getElementById(id);
 const text=key=>dynamicCopy[currentLanguage][key]||key;
 const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const safeUrl=value=>{try{const url=new URL(value);return /^https?:$/.test(url.protocol)?url.href:null;}catch{return null;}};
 const money=value=>new Intl.NumberFormat(currentLanguage==="en"?"en-IE":"hr-HR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(value);
-const compactMoney=value=>value>=1000000?`${(value/1000000).toLocaleString(currentLanguage==="en"?"en-IE":"hr-HR",{maximumFractionDigits:1})}M €`:`${Math.round(value/1000)}k €`;
+const compactMoney=value=>value>=1000000?`${(value/1000000).toLocaleString(currentLanguage==="en"?"en-IE":"hr-HR",{maximumFractionDigits:1})}M €`:`${Math.round(value/1000)}K €`;
 
 function hash(value){
   let result=2166136261;
@@ -74,8 +77,13 @@ export function listingCoordinates(item){
   return [Number((center[0]+Math.sin(angle)*radius).toFixed(6)),Number((center[1]+Math.cos(angle)*radius*1.45).toFixed(6))];
 }
 
-export function filterMapDeals(items,{area="all",source="all",maxPrice=Infinity,minArea=0,maxArea=Infinity,minDeal=.1}={}){
-  return items.filter(item=>item.discountPct>0&&(area==="all"||item.neighborhood===area)&&(source==="all"||item.source===source)&&item.price<=Number(maxPrice||Infinity)&&Number(item.area??0)>=Number(minArea||0)&&Number(item.area??0)<=Number(maxArea||Infinity)&&item.discountPct>=Number(minDeal||.1)).sort((a,b)=>b.discountPct-a.discountPct||a.price-b.price);
+export function filterMapDeals(items,{area="all",source="all",maxPrice=Infinity,sizeRanges=[],minDeal=.1}={}){
+  const selectedRanges=Array.isArray(sizeRanges)?sizeRanges.filter(key=>SIZE_RANGES[key]):[];
+  return items.filter(item=>{
+    const listingArea=Number(item.area??0);
+    const matchesSize=!selectedRanges.length||selectedRanges.some(key=>SIZE_RANGES[key](listingArea));
+    return item.discountPct>0&&(area==="all"||item.neighborhood===area)&&(source==="all"||item.source===source)&&item.price<=Number(maxPrice||Infinity)&&matchesSize&&item.discountPct>=Number(minDeal||.1);
+  }).sort((a,b)=>b.discountPct-a.discountPct||a.price-b.price);
 }
 
 function currentFilters(){
@@ -83,10 +91,21 @@ function currentFilters(){
     area:byId("mapAreaFilter")?.value||"all",
     source:byId("mapSourceFilter")?.value||"all",
     maxPrice:Number(byId("mapPriceFilter")?.value||Infinity),
-    minArea:Number(byId("mapMinAreaFilter")?.value||0),
-    maxArea:Number(byId("mapMaxAreaFilter")?.value||Infinity),
+    sizeRanges:appliedSizeRanges,
     minDeal:Number(byId("mapDealFilter")?.value||.1)
   };
+}
+
+function updateSizeSummary(){
+  const summary=byId("mapSizeSummary");
+  if(!summary)return;
+  if(!appliedSizeRanges.length){summary.textContent=text("anySize");return;}
+  if(appliedSizeRanges.length===1){
+    const input=globalThis.document?.querySelector(`input[name="mapSizeRange"][value="${appliedSizeRanges[0]}"]`);
+    summary.textContent=input?.closest("label")?.querySelector("span")?.textContent||text("anySize");
+    return;
+  }
+  summary.textContent=`${appliedSizeRanges.length} ${text("ranges")}`;
 }
 
 function popupHtml(item){
@@ -147,7 +166,7 @@ function addOptions(select,values){
 
 export function setDealMapLanguage(language){
   currentLanguage=language==="en"?"en":"hr";
-  if(initialized)renderMap({fit:false});
+  if(initialized){updateSizeSummary();renderMap({fit:false});}
 }
 
 export function initDealMap(items,{language="hr"}={}){
@@ -156,9 +175,14 @@ export function initDealMap(items,{language="hr"}={}){
   addOptions(byId("mapAreaFilter"),[...new Set(allDeals.map(item=>item.neighborhood))].sort((a,b)=>a.localeCompare(b,"hr")));
   addOptions(byId("mapSourceFilter"),[...new Set(allDeals.map(item=>item.source))].sort((a,b)=>a.localeCompare(b,"hr")));
   ["mapAreaFilter","mapSourceFilter","mapPriceFilter","mapDealFilter"].forEach(id=>byId(id)?.addEventListener("change",()=>renderMap()));
-  ["mapMinAreaFilter","mapMaxAreaFilter"].forEach(id=>byId(id)?.addEventListener("input",()=>renderMap()));
+  byId("applyMapSizeFilters")?.addEventListener("click",()=>{
+    appliedSizeRanges=[...globalThis.document.querySelectorAll('input[name="mapSizeRange"]:checked')].map(input=>input.value);
+    updateSizeSummary();byId("mapSizeFilter")?.removeAttribute("open");renderMap();
+  });
   byId("resetMapFilters")?.addEventListener("click",()=>{
-    byId("mapAreaFilter").value="all";byId("mapSourceFilter").value="all";byId("mapPriceFilter").value="";byId("mapMinAreaFilter").value="";byId("mapMaxAreaFilter").value="";byId("mapDealFilter").value="0.1";renderMap();
+    byId("mapAreaFilter").value="all";byId("mapSourceFilter").value="all";byId("mapPriceFilter").value="";byId("mapDealFilter").value="0.1";
+    globalThis.document.querySelectorAll('input[name="mapSizeRange"]').forEach(input=>{input.checked=false;});
+    appliedSizeRanges=[];updateSizeSummary();renderMap();
   });
   if(globalThis.L){
     mapInstance=globalThis.L.map("dealMap",{scrollWheelZoom:false,zoomControl:true}).setView(ZAGREB_CENTER,11);

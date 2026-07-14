@@ -12,8 +12,10 @@ test("karta prikazuje samo oglase ispod procjene i primjenjuje svoje filtre",()=
   assert.deepEqual(filterMapDeals(listings).map(item=>item.id),["a","b"]);
   assert.deepEqual(filterMapDeals(listings,{area:"Trnje",source:"Njuškalo",maxPrice:160000,minDeal:8}).map(item=>item.id),["a"]);
   assert.equal(filterMapDeals(listings,{maxPrice:140000}).length,0);
-  assert.deepEqual(filterMapDeals(listings,{minArea:70,maxArea:100}).map(item=>item.id),["b"]);
-  assert.equal(filterMapDeals(listings,{minArea:95}).length,0);
+  assert.deepEqual(filterMapDeals(listings,{sizeRanges:["80to100"]}).map(item=>item.id),["b"]);
+  const multiSizeListings=[...listings,{id:"d",source:"Oglasnik.hr",neighborhood:"Trnje",price:115000,area:35,discountPct:7}];
+  assert.deepEqual(filterMapDeals(multiSizeListings,{sizeRanges:["under40","80to100"]}).map(item=>item.id),["d","b"]);
+  assert.equal(filterMapDeals(listings,{sizeRanges:["over100"]}).length,0);
 });
 
 test("oglas dobiva stabilnu približnu koordinatu unutar Zagreba",()=>{

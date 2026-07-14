@@ -62,8 +62,17 @@
         <select id="mapAreaFilter" aria-label="Kvart na karti"><option value="all" data-i18n="allZagreb">Cijeli Zagreb</option></select>
         <select id="mapSourceFilter" aria-label="Izvor na karti"><option value="all" data-i18n="allSources">Svi izvori</option></select>
         <select id="mapPriceFilter" aria-label="Najviša cijena na karti"><option value="" data-i18n="anyPrice">Bilo koja cijena</option><option value="150000">≤ 150.000 €</option><option value="200000">≤ 200.000 €</option><option value="250000">≤ 250.000 €</option><option value="350000">≤ 350.000 €</option></select>
-        <label class="map-number-filter"><span data-i18n="mapMinArea">Od</span><input id="mapMinAreaFilter" type="number" min="0" step="5" inputmode="numeric" placeholder="0" aria-label="Minimalna kvadratura" /><small>m²</small></label>
-        <label class="map-number-filter"><span data-i18n="mapMaxArea">Do</span><input id="mapMaxAreaFilter" type="number" min="0" step="5" inputmode="numeric" placeholder="∞" aria-label="Maksimalna kvadratura" /><small>m²</small></label>
+        <details class="map-size-filter" id="mapSizeFilter">
+          <summary id="mapSizeSummary" data-i18n="mapAnySize">Sve kvadrature</summary>
+          <div class="map-size-menu" role="group" aria-label="Odaberi kvadraturu">
+            <label><input type="checkbox" name="mapSizeRange" value="under40" /><span data-i18n="mapSizeUnder40">Do 40 m²</span></label>
+            <label><input type="checkbox" name="mapSizeRange" value="40to60" /><span data-i18n="mapSize40to60">40–60 m²</span></label>
+            <label><input type="checkbox" name="mapSizeRange" value="60to80" /><span data-i18n="mapSize60to80">60–80 m²</span></label>
+            <label><input type="checkbox" name="mapSizeRange" value="80to100" /><span data-i18n="mapSize80to100">80–100 m²</span></label>
+            <label><input type="checkbox" name="mapSizeRange" value="over100" /><span data-i18n="mapSizeOver100">100+ m²</span></label>
+            <button type="button" id="applyMapSizeFilters" class="primary" data-i18n="applyMapFilters">Primijeni</button>
+          </div>
+        </details>
         <select id="mapDealFilter" aria-label="Minimalni popust"><option value="0.1" data-i18n="mapAllDeals">Svi ispod procjene</option><option value="5" data-i18n="mapMin5">Najmanje 5% ispod</option><option value="10" data-i18n="mapMin10">Najmanje 10% ispod</option><option value="15" data-i18n="mapMin15">Najmanje 15% ispod</option></select>
         <button type="button" id="resetMapFilters" class="filter-reset" data-i18n="resetFilters">Poništi</button>
       </form>
