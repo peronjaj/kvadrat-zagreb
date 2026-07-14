@@ -61,6 +61,7 @@ const escapeHtml=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;"
 const safeUrl=value=>{try{const url=new URL(value);return /^https?:$/.test(url.protocol)?url.href:null;}catch{return null;}};
 const money=value=>new Intl.NumberFormat(currentLanguage==="en"?"en-IE":"hr-HR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(value);
 const compactMoney=value=>value>=1000000?`${(value/1000000).toLocaleString(currentLanguage==="en"?"en-IE":"hr-HR",{maximumFractionDigits:1})}M €`:`${Math.round(value/1000)}K €`;
+const compactM2=value=>`${Math.round(value).toLocaleString(currentLanguage==="en"?"en-IE":"hr-HR")} €/m²`;
 
 function hash(value){
   let result=2166136261;
@@ -148,7 +149,8 @@ function renderMap({fit=true}={}){
   const bounds=[];
   for(const item of items){
     const coordinates=listingCoordinates(item);
-    const icon=globalThis.L.divIcon({className:"deal-price-icon",html:`<span class="deal-price-marker" style="--marker-color:${markerColor(item.discountPct)}"><b>${compactMoney(item.price)}</b></span>`,iconSize:[88,34],iconAnchor:[44,17],popupAnchor:[0,-17]});
+    const priceM2=Number(item.priceM2)||Number(item.price)/Number(item.area||1);
+    const icon=globalThis.L.divIcon({className:"deal-price-icon",html:`<span class="deal-price-marker" style="--marker-color:${markerColor(item.discountPct)}"><b>${compactMoney(item.price)}</b><small>${compactM2(priceM2)}</small></span>`,iconSize:[78,40],iconAnchor:[39,20],popupAnchor:[0,-20]});
     const marker=globalThis.L.marker(coordinates,{icon,title:`${money(item.price)} · −${item.discountPct}% · ${item.neighborhood}`}).bindPopup(popupHtml(item),{maxWidth:310});
     marker.on("popupopen",()=>marker.getElement()?.classList.add("is-selected"));
     marker.on("popupclose",()=>marker.getElement()?.classList.remove("is-selected"));
@@ -188,7 +190,7 @@ export function initDealMap(items,{language="hr"}={}){
     mapInstance=globalThis.L.map("dealMap",{scrollWheelZoom:false,zoomControl:true}).setView(ZAGREB_CENTER,11);
     globalThis.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(mapInstance);
     markerLayer=typeof globalThis.L.markerClusterGroup==="function"
-      ?globalThis.L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:42,spiderfyOnMaxZoom:true,disableClusteringAtZoom:14,iconCreateFunction:cluster=>globalThis.L.divIcon({className:"deal-cluster-icon",html:`<span class="deal-cluster-marker"><b>${cluster.getChildCount()}</b><small>${currentLanguage==="en"?"deals":"dealova"}</small></span>`,iconSize:[48,48],iconAnchor:[24,24]})}).addTo(mapInstance)
+      ?globalThis.L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:90,spiderfyOnMaxZoom:true,spiderfyDistanceMultiplier:2.2,zoomToBoundsOnClick:true,iconCreateFunction:cluster=>globalThis.L.divIcon({className:"deal-cluster-icon",html:`<span class="deal-cluster-marker"><b>${cluster.getChildCount()}</b><small>${currentLanguage==="en"?"deals":"dealova"}</small></span>`,iconSize:[44,44],iconAnchor:[22,22]})}).addTo(mapInstance)
       :globalThis.L.layerGroup().addTo(mapInstance);
   }else{
     const container=byId("dealMap");if(container)container.innerHTML=`<div class="map-load-error">${text("mapUnavailable")}</div>`;
