@@ -8,12 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#"><span class="brand-mark">K</span><span>Kvadrat</span><small>Zagreb</small></a>
-    <nav><a class="active" href="#oglasi" data-i18n="navListings">Oglasi</a><a href="#kako-radi" data-i18n="navHow">Kako radi</a></nav>
+    <nav><a class="active" href="#oglasi" data-i18n="navListings">Oglasi</a><a href="#karta" data-i18n="navMap">Karta dealova</a><a href="#kako-radi" data-i18n="navHow">Kako radi</a></nav>
     <div class="header-actions"><button class="language-toggle" id="languageToggle" aria-label="Switch language">EN</button><button class="icon-button" id="savedButton" aria-label="Spremljeni oglasi">♡ <span id="savedCount">0</span></button><button class="primary small" id="alertButton" data-i18n="setAlert">＋ Postavi alarm</button></div>
   </header>
 
@@ -41,6 +42,25 @@
       <div><strong id="statNew">—</strong><span data-i18n="newToday">novo danas</span></div>
     </section>
 
+    <section class="deal-map-section" id="karta">
+      <div class="map-section-head">
+        <div><div class="eyebrow"><span></span><i data-i18n="mapEyebrow">Samo ispod procjene</i></div><h2 data-i18n="mapTitle">Dobri dealovi na karti</h2><p data-i18n="mapText">Cijena je vidljiva na svakoj oznaci, a klik otvara detalje i originalni oglas.</p></div>
+        <strong id="mapResultCount" aria-live="polite">Učitavanje karte…</strong>
+      </div>
+      <form class="map-filters" id="mapFilters" aria-label="Filtri karte">
+        <select id="mapAreaFilter" aria-label="Kvart na karti"><option value="all" data-i18n="allZagreb">Cijeli Zagreb</option></select>
+        <select id="mapSourceFilter" aria-label="Izvor na karti"><option value="all" data-i18n="allSources">Svi izvori</option></select>
+        <select id="mapPriceFilter" aria-label="Najviša cijena na karti"><option value="" data-i18n="anyPrice">Bilo koja cijena</option><option value="150000">≤ 150.000 €</option><option value="200000">≤ 200.000 €</option><option value="250000">≤ 250.000 €</option><option value="350000">≤ 350.000 €</option></select>
+        <select id="mapDealFilter" aria-label="Minimalni popust"><option value="0.1" data-i18n="mapAllDeals">Svi ispod procjene</option><option value="5" data-i18n="mapMin5">Najmanje 5% ispod</option><option value="10" data-i18n="mapMin10">Najmanje 10% ispod</option><option value="15" data-i18n="mapMin15">Najmanje 15% ispod</option></select>
+        <button type="button" id="resetMapFilters" class="filter-reset" data-i18n="resetFilters">Poništi</button>
+      </form>
+      <div class="map-shell">
+        <div id="dealMap" role="application" aria-label="Karta stanova ispod tržišne procjene"></div>
+        <aside id="mapDealList" class="map-deal-list" aria-label="Dealovi prikazani na karti"></aside>
+      </div>
+      <p class="map-note" data-i18n="mapNote">Lokacije su približne prema kvartu ili mikrolokaciji oglasa; točnu adresu provjeri na izvornom oglasu.</p>
+    </section>
+
     <section class="listings-section" id="oglasi">
       <div class="section-head">
         <div><div class="eyebrow"><span></span><i data-i18n="freshMarket">Svježe s tržišta</i></div><h2 data-i18n="opportunities">Prilike vrijedne pažnje</h2><p id="resultSummary">Učitavanje oglasa…</p></div>
@@ -53,7 +73,7 @@
 
     <section class="method" id="kako-radi">
       <div><div class="eyebrow light"><span></span><i data-i18n="methodEyebrow">Procjena bez magije</i></div><h2 data-i18n-html="methodTitle">Kako prepoznajemo<br>dobar deal?</h2><p data-i18n="methodText">Svaki oglas uspoređujemo s relevantnim stanovima, ne s cijelim gradom.</p></div>
-      <div class="method-steps"><article><b>01</b><h3 data-i18n="microLocation">Mikrolokacija</h3><p data-i18n="microText">Kvart i neposredna lokacija nose najveću težinu.</p></article><article><b>02</b><h3 data-i18n="characteristics">Karakteristike</h3><p data-i18n="characteristicsText">Kvadratura, stanje, kat, lift, parking i godina gradnje.</p></article><article><b>03</b><h3 data-i18n="clearScore">Jasna ocjena</h3><p data-i18n="clearScoreText">Prikazujemo razliku od procjene i sigurnost rezultata.</p></article></div>
+      <div class="method-steps"><article><b>01</b><h3 data-i18n="microLocation">Mikrolokacija</h3><p data-i18n="microText">Kvart i neposredna lokacija nose najveću težinu.</p></article><article><b>02</b><h3 data-i18n="characteristics">Karakteristike</h3><p data-i18n="characteristicsText">Kvadratura, stanje, suteren ili kat, lift, parking i godina gradnje.</p></article><article><b>03</b><h3 data-i18n="clearScore">Jasna ocjena</h3><p data-i18n="clearScoreText">Prikazujemo razliku od procjene i sigurnost rezultata.</p></article></div>
     </section>
   </main>
 
@@ -62,6 +82,7 @@
   <dialog id="detailDialog"><button class="dialog-close" aria-label="Zatvori">×</button><div id="dialogContent"></div></dialog>
   <dialog id="alertDialog"><button class="dialog-close" aria-label="Zatvori">×</button><div class="alert-form"><span class="modal-icon">⌁</span><h2 data-i18n="alertTitle">Ne propusti novi deal</h2><p data-i18n="alertText">Spremit ćemo tvoje trenutačne filtre. U produkcijskoj verziji ovdje se uključuju e-mail obavijesti.</p><label><span data-i18n="alertName">Naziv alarma</span><input id="alertName" value="Moj zagrebački deal" /></label><button class="primary" id="saveAlert" data-i18n="saveAlert">Spremi alarm</button></div></dialog>
   <div id="toast" role="status"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

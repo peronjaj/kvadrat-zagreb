@@ -29,6 +29,14 @@ test("prepoznaje Njuškalo CAPTCHA odgovor", () => {
   assert.throws(() => parseNjuskaloList('<script src="https://hcaptcha.com/1/api.js"></script>'), /CAPTCHA/);
 });
 
+test("prepoznaje suteren kao zasebnu karakteristiku",()=>{
+  const html=`<article><a href="/nekretnine/stan-suteren-zagreb-oglas-47700002">Stan u suterenu 45 m2</a><p>Etaža: suteren</p><p>Stambena površina: 45 m2</p><p>Lokacija: Trnje, Savica</p><p>Objavljen: 12.07.2026.</p><strong>120.000 €</strong></article>`;
+  const [item]=parseNjuskaloList(html);
+  assert.equal(item.floor,0);
+  assert.equal(item.basement,true);
+  assert.ok(item.features.includes("Suteren"));
+});
+
 const pageFixture=(id,date)=>`<article><a href="/nekretnine/stan-zagreb-oglas-${id}">Dvosoban stan Zagreb 50 m2</a><img src="https://www.njuskalo.hr/image-200x150/nekretnine/stan-${id}-slika-1.jpg"><p>Stan u stambenoj zgradi, 1. kat</p><p>Stambena površina: 50 m2</p><p>Lokacija: Trnje, Trnje</p><p>Objavljen: ${date}.</p><strong>180.000 €</strong></article>`;
 
 test("prolazi stranice dok ne dođe do oglasa starijih od danas",async()=>{

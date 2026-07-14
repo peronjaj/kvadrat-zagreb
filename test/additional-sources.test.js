@@ -16,7 +16,7 @@ test("čita samo nedavne zagrebačke Oglasnik.hr oglase",()=>{
 });
 
 test("normalizira javni Index JSON feed",()=>{
-  const payload={items:[{id:88,title:"Dvosoban stan Maksimir",area:50,price:{value:190000},rooms:2,floor:2,year:1999,publishedAt:"2026-07-12T08:00:00Z",location:{name:"Maksimir"},url:"/oglasi/nekretnine/prodaja-stanova/oglas/test/88"}]};
+  const payload={items:[{id:88,title:"Dvosoban stan Maksimir u suterenu",area:50,price:{value:190000},rooms:2,floor:"suteren",year:1999,publishedAt:"2026-07-12T08:00:00Z",location:{name:"Maksimir"},url:"/oglasi/nekretnine/prodaja-stanova/oglas/test/88"}]};
   const [item]=parseIndexPayload(payload,{now:Date.parse("2026-07-12T10:00:00Z")});
-  assert.equal(item.id,"ix-88");assert.equal(item.price,190000);assert.equal(item.neighborhood,"Maksimir");assert.match(item.sourceUrl,/index\.hr/);
+  assert.equal(item.id,"ix-88");assert.equal(item.price,190000);assert.equal(item.neighborhood,"Maksimir");assert.equal(item.basement,true);assert.match(item.sourceUrl,/index\.hr/);
 });

@@ -28,6 +28,7 @@ test("uklanja duplikate unutar izvora, ali čuva oglase s različitih portala", 
 });
 
 test("primjenjuje postotak kata i progresivni penal bez lifta",()=>{
+  assert.equal(floorAdjustmentPct(0,true),-18);
   assert.equal(floorAdjustmentPct(0),-6);
   assert.equal(floorAdjustmentPct(3),2);
   assert.equal(floorAdjustmentPct(6),0);
@@ -39,4 +40,8 @@ test("primjenjuje postotak kata i progresivni penal bez lifta",()=>{
   const result=estimateListing({...listing,floor:4,elevator:false});
   assert.equal(result.floorAdjustmentPct,2);
   assert.equal(result.accessAdjustmentPct,-5);
+  const ground=estimateListing({...listing,floor:0,basement:false,elevator:false});
+  const basement=estimateListing({...listing,floor:0,basement:true,elevator:false});
+  assert.equal(basement.floorAdjustmentPct,-18);
+  assert.ok(basement.expectedPrice<ground.expectedPrice);
 });
