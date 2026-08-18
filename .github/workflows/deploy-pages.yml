@@ -17,14 +17,12 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  refresh-and-deploy:
+  refresh:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 30
     steps:
       - name: Preuzmi projekt
         uses: actions/checkout@v6
@@ -67,6 +65,14 @@ jobs:
         with:
           path: public
 
+  deploy:
+    needs: refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Objavi stranicu
         id: deployment
         uses: actions/deploy-pages@v4
