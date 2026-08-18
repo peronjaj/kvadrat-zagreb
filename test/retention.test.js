@@ -5,9 +5,9 @@ import { DAY_MS,mergeAndRetain } from "../lib/retention.js";
 const now=Date.parse("2026-07-12T09:00:00Z");
 const old=(id,days,discountPct)=>({id,price:100000,discountPct,lastSeenAt:new Date(now-days*DAY_MS).toISOString(),publishedAt:"2026-01-01"});
 
-test("obične oglase čuva 3 dana, a one ispod tržišta 7 dana",()=>{
-  const result=mergeAndRetain([old("regular-2",2,-1),old("regular-4",4,-1),old("deal-6",6,5),old("deal-8",8,5)],[],now);
-  assert.deepEqual(result.map(x=>x.id).sort(),["deal-6","regular-2"]);
+test("obične oglase čuva 14 dana, a one ispod tržišta 30 dana",()=>{
+  const result=mergeAndRetain([old("regular-13",13,-1),old("regular-15",15,-1),old("deal-29",29,5),old("deal-31",31,5)],[],now);
+  assert.deepEqual(result.map(x=>x.id).sort(),["deal-29","regular-13"]);
 });
 
 test("ponovno viđen oglas osvježava lastSeen i čuva povijest cijene",()=>{

@@ -25,15 +25,18 @@ npm.cmd test
 
 ## Izvori podataka
 
-Rotacija uključuje Njuškalo, Nekretnine.hr, Index Oglasi i Oglasnik.hr. Svi
-adapteri čitaju samo javne popise, zadržavaju izvorni direktni URL i javno
+Rotacija uključuje Njuškalo, Nekretnine.hr, Index Oglasi, Oglasnik.hr i
+CroReal.com. Svi adapteri čitaju samo javne popise, zadržavaju izvorni direktni
+URL i javno
 dostupnu sliku. Ne prijavljuju se, ne dohvaćaju kontaktne podatke i ne
 zaobilaze niti automatski rješavaju CAPTCHA zaštitu. Svaki izvor ima zaseban
 status, pa privremeni problem jednog portala ne zaustavlja ostale.
 
-Nekretnine.hr čita javne strukturirane podatke i uzima oglase koje portal
-označava kao nove. Oglasnik.hr koristi njegov javni popis sortiran po datumu i
-ograničava rezultate na Grad Zagreb i zadnja tri dana. Index Oglasi prvo
+Nekretnine.hr čita javne strukturirane podatke kroz više stranica aktivnog
+inventara. Oglasnik.hr koristi njegov javni popis sortiran po datumu i
+ograničava rezultate na Grad Zagreb i zadnjih 12 dana. CroReal.com čita javni
+JSON-LD popis, skenira najviše 20 stranica uz ograničenu brzinu i ne otvara
+pojedinačne oglase. Index Oglasi prvo
 pokušava dohvatiti javni Zagreb feed; ako portal odbije serverski poziv, koristi
 se vremenski ograničena provjerena javna snimka, jasno označena u statusu.
 
@@ -47,8 +50,8 @@ bi potisnuo ostale s prvog ekrana.
 
 Retencija oglasa:
 
-- svi oglasi ostaju vidljivi tri dana od zadnjeg uspješnog viđenja;
-- oglasi ispod procijenjene tržišne cijene ostaju sedam dana;
+- svi oglasi ostaju vidljivi 14 dana od zadnjeg uspješnog viđenja;
+- oglasi ispod procijenjene tržišne cijene ostaju 30 dana;
 - promjene cijene spremaju se u `priceHistory`, a `firstSeenAt` i `lastSeenAt`
   bilježe prvo i posljednje viđenje oglasa.
 
@@ -92,7 +95,7 @@ aplikacija koristi provjerenu javnu Njuškalo snimku od 12.07.2026. sa stvarnim
 oglasima, fotografijama i izravnim URL-ovima. Takvi zapisi imaju `snapshot: true`
 i u sučelju su jasno označeni kao snimka, ne kao osvježavanje uživo.
 
-Skener prolazi `?page=2`, `?page=3` i dalje, najviše 12 stranica, dok ne dođe
-do stranice bez oglasa objavljenih današnjeg datuma. Između stranica čeka 1,8
+Njuškalo skener prolazi `?page=2`, `?page=3` i dalje, najviše 20 stranica, dok
+ne dođe do stranice bez oglasa iz zadnjih 12 dana. Između stranica čeka 1,8
 sekundi. Ako CAPTCHA prekine prolaz, već pronađeni oglasi se zadržavaju i, samo
 ako je snimka izrađena istog dana, dopunjavaju provjerenom javnom snimkom.

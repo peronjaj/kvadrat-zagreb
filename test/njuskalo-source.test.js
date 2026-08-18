@@ -39,14 +39,14 @@ test("prepoznaje suteren kao zasebnu karakteristiku",()=>{
 
 const pageFixture=(id,date)=>`<article><a href="/nekretnine/stan-zagreb-oglas-${id}">Dvosoban stan Zagreb 50 m2</a><img src="https://www.njuskalo.hr/image-200x150/nekretnine/stan-${id}-slika-1.jpg"><p>Stan u stambenoj zgradi, 1. kat</p><p>Stambena površina: 50 m2</p><p>Lokacija: Trnje, Trnje</p><p>Objavljen: ${date}.</p><strong>180.000 €</strong></article>`;
 
-test("prolazi stranice dok ne dođe do oglasa starijih od danas",async()=>{
+test("prolazi stranice dok ne dođe do oglasa starijih od 12 dana",async()=>{
   const calls=[];
-  const pages=[pageFixture("50000001","12.07.2026"),pageFixture("50000002","11.07.2026")];
+  const pages=[pageFixture("50000001","12.07.2026"),pageFixture("50000002","01.07.2026"),pageFixture("50000003","29.06.2026")];
   const source=new NjuskaloSource({fetchImpl:async url=>{calls.push(url);return{ok:true,text:async()=>pages[calls.length-1]};},maxPages:5,delayMs:0,now:()=>Date.parse("2026-07-12T07:00:00Z")});
   const items=await source.fetch();
-  assert.deepEqual(items.map(x=>x.id),["nj-50000001"]);
-  assert.deepEqual(calls,["https://www.njuskalo.hr/prodaja-stanova/zagreb","https://www.njuskalo.hr/prodaja-stanova/zagreb?page=2"]);
-  assert.equal(source.lastRun.stoppedReason,"older-than-today");
+  assert.deepEqual(items.map(x=>x.id),["nj-50000001","nj-50000002"]);
+  assert.deepEqual(calls,["https://www.njuskalo.hr/prodaja-stanova/zagreb","https://www.njuskalo.hr/prodaja-stanova/zagreb?page=2","https://www.njuskalo.hr/prodaja-stanova/zagreb?page=3"]);
+  assert.equal(source.lastRun.stoppedReason,"older-than-lookback");
 });
 
 test("čuva već pronađene oglase ako CAPTCHA stigne na sljedećoj stranici",async()=>{

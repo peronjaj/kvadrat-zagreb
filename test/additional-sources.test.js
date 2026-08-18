@@ -15,6 +15,21 @@ test("čita samo nedavne zagrebačke Oglasnik.hr oglase",()=>{
   assert.equal(item.id,"og-77");assert.equal(item.area,55);assert.equal(item.floor,3);assert.equal(item.parking,true);assert.match(item.sourceUrl,/oglas-77$/);
 });
 
+test("odbacuje Nekretnine.hr oglas s nerealnom cijenom",()=>{
+  const data={props:{pageProps:{dehydratedState:{queries:[{queryKey:["real-estate-list"],state:{data:{results:[{realEstate:{id:124,isNew:true,title:"Stan s cijenom na upit",price:{value:1},properties:[{surface:"100 m²",rooms:"3",location:{macrozone:"Zagreb"}}]}}]}}}]}}}};
+  const html=`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(data)}</script>`;
+  assert.deepEqual(parseNekretnineHrList(html,{now:Date.parse("2026-07-12T09:00:00Z"),onlyNew:false}),[]);
+});
+
+test("Oglasnik.hr uključuje propuštene oglase iz 12-dnevnog prozora",()=>{
+  const base={title:"Stan Maksimir 50 m2",location:[{name:"Hrvatska"},{name:"Grad Zagreb"},{name:"Maksimir"}],price:{value:190000},details:[{params:[{slug:"re_total_area",value:"50"}]}]};
+  const recent={...base,id:78,publish:"02.07.2026 09:00:00"};
+  const stale={...base,id:79,publish:"29.06.2026 09:00:00"};
+  const text=`x:{"ad":${JSON.stringify(recent)},"isHomepage":false} y:{"ad":${JSON.stringify(stale)},"isHomepage":false}`;
+  const items=parseOglasnikRsc(text,{now:Date.parse("2026-07-12T10:00:00Z")});
+  assert.deepEqual(items.map(item=>item.id),["og-78"]);
+});
+
 test("normalizira javni Index JSON feed",()=>{
   const payload={items:[{id:88,title:"Dvosoban stan Maksimir u suterenu",area:50,price:{value:190000},rooms:2,floor:"suteren",year:1999,publishedAt:"2026-07-12T08:00:00Z",location:{name:"Maksimir"},url:"/oglasi/nekretnine/prodaja-stanova/oglas/test/88"}]};
   const [item]=parseIndexPayload(payload,{now:Date.parse("2026-07-12T10:00:00Z")});
