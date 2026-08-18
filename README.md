@@ -25,18 +25,19 @@ npm.cmd test
 
 ## Izvori podataka
 
-Rotacija uključuje Njuškalo, Nekretnine.hr, Index Oglasi, Oglasnik.hr i
-CroReal.com. Svi adapteri čitaju samo javne popise, zadržavaju izvorni direktni
-URL i javno
-dostupnu sliku. Ne prijavljuju se, ne dohvaćaju kontaktne podatke i ne
-zaobilaze niti automatski rješavaju CAPTCHA zaštitu. Svaki izvor ima zaseban
-status, pa privremeni problem jednog portala ne zaustavlja ostale.
+Rotacija uključuje Njuškalo, Nekretnine.hr, Index Oglasi, Oglasnik.hr,
+CroReal.com i Kvadratko.hr. Svi adapteri čitaju samo javne popise, zadržavaju
+izvorni direktni URL i javno dostupnu sliku. Ne prijavljuju se, ne dohvaćaju
+kontaktne podatke i ne zaobilaze niti automatski rješavaju CAPTCHA zaštitu.
+Svaki izvor ima zaseban status, pa privremeni problem jednog portala ne
+zaustavlja ostale.
 
 Nekretnine.hr čita javne strukturirane podatke kroz više stranica aktivnog
 inventara. Oglasnik.hr koristi njegov javni popis sortiran po datumu i
 ograničava rezultate na Grad Zagreb i zadnjih 12 dana. CroReal.com čita javni
 JSON-LD popis, skenira najviše 20 stranica uz ograničenu brzinu i ne otvara
-pojedinačne oglase. Index Oglasi prvo
+pojedinačne oglase. Kvadratko.hr također čita javni JSON-LD popis kroz najviše
+12 dopuštenih `Page=` stranica. Index Oglasi prvo
 pokušava dohvatiti javni Zagreb feed; ako portal odbije serverski poziv, koristi
 se vremenski ograničena provjerena javna snimka, jasno označena u statusu.
 
